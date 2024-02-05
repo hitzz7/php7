@@ -61,6 +61,7 @@ class Product extends Database {
             }
 
             $this->pdo->commit();
+            
 
             return $newProductId;
         } catch (Exception $e) {

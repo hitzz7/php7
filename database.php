@@ -23,4 +23,42 @@ class Database {
             die();
         }
     }
+
+    /**
+     * Executes an SQL query with optional parameters and returns the result.
+     * 
+     * @param string $sql The SQL query to execute.
+     * @param array $params Optional parameters to bind to the query.
+     * @param bool $fetchAll Determines if all rows should be returned (true) or just one (false).
+     * @return mixed The result set or status of the operation.
+     */
+    public function executeQuery($sql, $params = [], $fetchAll = true) {
+        $stmt = $this->pdo->prepare($sql);
+
+        foreach ($params as $key => &$val) {
+            $stmt->bindParam($key, $val);
+        }
+
+        $stmt->execute();
+
+        if (strpos(strtoupper($sql), 'SELECT') !== false) {
+            return $fetchAll ? $stmt->fetchAll(PDO::FETCH_ASSOC) : $stmt->fetch(PDO::FETCH_ASSOC);
+        } else {
+            return $stmt->rowCount(); // For INSERT, UPDATE, DELETE
+        }
+    }
+    public function beginTransaction() {
+        $this->pdo->beginTransaction();
+    }
+    
+    public function commit() {
+        $this->pdo->commit();
+    }
+    
+    public function rollBack() {
+        $this->pdo->rollBack();
+    }
+    public function lastInsertId() {
+        $this->pdo->lastInsertId();
+    }
 }
