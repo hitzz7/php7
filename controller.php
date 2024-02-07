@@ -8,8 +8,20 @@ class Product extends Database {
     }
 
     public function getItemsForProduct($productId) {
-        return $this->executeQuery("SELECT * FROM items WHERE product_id = :product_id", [':product_id' => $productId], true);
+        return $this->executeQuery("
+            SELECT 
+                *, 
+                CASE status
+                    WHEN '1' THEN 'active'
+                    WHEN '0' THEN 'inactive'
+                    ELSE 'unknown' -- Optional, handles unexpected values
+                END as status
+            FROM items 
+            WHERE product_id = :product_id", 
+            [':product_id' => $productId], 
+            true);
     }
+    
 
     public function getImagesForProduct($productId) {
         return $this->executeQuery("SELECT * FROM images WHERE product_id = :product_id", [':product_id' => $productId], true);
@@ -25,9 +37,7 @@ class Product extends Database {
 
             $sql = "INSERT INTO products (name, description) VALUES (:name, :description)";
             $params = [':name' => $name, ':description' => $description];
-            $this->executeQuery($sql, $params, false);
-
-            $newProductId = $this->lastInsertId();
+            $newProductId = $this->executeQuery($sql, $params, false, true);
 
             foreach ($items as $item) {
                 $this->insertItemForProduct($newProductId, $item);
@@ -43,12 +53,13 @@ class Product extends Database {
     }
 
     private function insertItemForProduct($productId, $item) {
+        $numericStatus = ($item['status'] === 'active') ? 1 : 0;
         $this->executeQuery("INSERT INTO items (product_id, size, color, status, sku, price) 
                              VALUES (:product_id, :size, :color, :status, :sku, :price)", [
             ':product_id' => $productId,
             ':size' => $item['size'],
             ':color' => $item['color'],
-            ':status' => $item['status'],
+            ':status' => $numericStatus,
             ':sku' => $item['sku'],
             ':price' => $item['price']
         ], false);
@@ -157,6 +168,16 @@ class Product extends Database {
     
         return true; // Indicate that the image has been successfully deleted
     }
+    public function errorResponse($msg, $code = 400) 
+{
+    http_response_code($code); // Set HTTP response code
+    echo json_encode([
+        'status' => 'error',
+        'code' => $code,
+        'message' => $msg
+    ]);
+    exit(); // Halt further script execution after sending the error response
+}
     
     
     

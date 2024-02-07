@@ -32,19 +32,29 @@ class Database {
      * @param bool $fetchAll Determines if all rows should be returned (true) or just one (false).
      * @return mixed The result set or status of the operation.
      */
-    public function executeQuery($sql, $params = [], $fetchAll = true) {
-        $stmt = $this->pdo->prepare($sql);
-
-        foreach ($params as $key => &$val) {
-            $stmt->bindParam($key, $val);
-        }
-
-        $stmt->execute();
-
-        if (strpos(strtoupper($sql), 'SELECT') !== false) {
-            return $fetchAll ? $stmt->fetchAll(PDO::FETCH_ASSOC) : $stmt->fetch(PDO::FETCH_ASSOC);
-        } else {
-            return $stmt->rowCount(); // For INSERT, UPDATE, DELETE
+    public function executeQuery($sql, $params = [], $fetchAll = true, $returnLastInsertId = false) {
+        try {
+            $stmt = $this->pdo->prepare($sql);
+    
+            foreach ($params as $key => &$val) {
+                $stmt->bindParam($key, $val);
+            }
+    
+            $stmt->execute();
+    
+            if (strpos(strtoupper($sql), 'SELECT') !== false) {
+                return $fetchAll ? $stmt->fetchAll(PDO::FETCH_ASSOC) : $stmt->fetch(PDO::FETCH_ASSOC);
+            } else {
+                if ($returnLastInsertId) {
+                    return $this->pdo->lastInsertId();
+                } else {
+                    return $stmt->rowCount(); // For INSERT, UPDATE, DELETE
+                }
+            }
+        } catch (PDOException $e) {
+            // Handle exceptions, log errors, or re-throw for higher-level handling
+            echo "Query execution failed: " . $e->getMessage();
+            die();
         }
     }
     public function beginTransaction() {
@@ -58,7 +68,5 @@ class Database {
     public function rollBack() {
         $this->pdo->rollBack();
     }
-    public function lastInsertId() {
-        $this->pdo->lastInsertId();
-    }
+    
 }
